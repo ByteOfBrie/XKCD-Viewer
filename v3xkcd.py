@@ -35,6 +35,19 @@ def text_to_lines(hover_text, line_width):
             line = ''
     return hover_lines
 
+def calculate_screen_dims(screen_size, messages, lines):
+    '''
+    calculates and returns a tuple of the pad and the image width
+    '''
+    pad = [0, 0, 0, 0] #top bottom left right
+    img_dims = [0, 0]
+    pad[2] = 5
+    pad[3] = 5
+    img_dims[1] = screen_size[1] - pad[2] - pad[3]
+    pad[0] = 4 if len(messages) == 0 else 3 + len(messages)
+    pad[1] = 2 + len(lines)
+    img_dims[0] = screen_size[0] - pad[0] - pad[1]
+
 def main(stdscr):
     '''
     Curses fuction
@@ -49,20 +62,11 @@ def main(stdscr):
     title = 'Judgement Day'
     hover_text = ('It took a lot of booster rockets, but luckily Amazon had recently built '
                   'thousands of them to bring Amazon Prime same-day delivery to the Moon colony.')
-    pad = [0, 0, 0, 0]
     pad_offset = [0, 0]
-    img_dims = [0, 0]
-    pad[2] = 5
-    pad[3] = 5
-    img_dims[1] = stdscr.getmaxyx()[1] - pad[2] - pad[3]
     lines = text_to_lines(hover_text, img_dims[1])
-    pad[0] = 4
-    pad[1] = 2 + len(lines)
-    img_dims[0] = stdscr.getmaxyx()[0] - pad[0] - pad[1]
     messages = []
     while True:
-        pad[0] = 4 if len(messages) == 0 else 3 + len(messages)
-        pad[1] = 2 + len(lines)
+        pad, img_dims = calculate_screen_dims
         img_dims[0] = stdscr.getmaxyx()[0] - pad[0] - pad[1]
         #if message is longer than screen width it will do weird things, not tested yet
         stdscr.erase()
