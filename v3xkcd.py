@@ -12,11 +12,6 @@ from PIL import Image
 PAD_MOVE_X = 5
 PAD_MOVE_Y = 5
 
-def get_xkcd_data(comic_id):
-    '''Grab the comic data and image based on the id'.'''
-    url = 'http://xkcd.com/{}/'.format(comic_id)
-    soup = BeautifulSoup(requests.get(url).text, 'html.parser')
-
 def text_to_lines(hover_text, line_width):
     '''
     splits a string of words into individual lines
@@ -39,7 +34,7 @@ def calculate_screen_dims(screen_size, messages, lines):
     '''
     calculates and returns a tuple of the pad and the image width
     '''
-    pad = [0, 0, 0, 0] #top bottom left right
+    pad = [0, 0, 0, 0]          #top bottom left right
     img_dims = [0, 0]
     pad[2] = 5
     pad[3] = 5
@@ -47,8 +42,27 @@ def calculate_screen_dims(screen_size, messages, lines):
     pad[0] = 4 if len(messages) == 0 else 3 + len(messages)
     pad[1] = 2 + len(lines)
     img_dims[0] = screen_size[0] - pad[0] - pad[1]
+    return pad, img_dims
 
-def main(stdscr):
+def get_comic_data(comic_id, testing=False):
+    '''
+    gets the image, name, and hover text from xkcd.com for the number
+    if testing is true it uses a saved comic (#1626)
+    '''
+    if testing:
+        data = None
+        with open('comicdata', 'r') as comicdata:
+            data = comicdata.read().split('\n')
+        title = 'Judgement Day'
+        hover_text = ('It took a lot of booster rockets, but luckily Amazon had recently built '
+                      'thousands of them to bring Amazon Prime '
+                      'same-day delivery to the Moon colony.')
+        return title, hover_text, data
+    else:
+        url = 'http://xkcd.com/{}/'.format(comic_id)
+        soup = BeautifulSoup(requests.get(url).text, 'html.parser')
+
+def main(stdscr):   #too many branches, 23/12
     '''
     Curses fuction
     '''
@@ -56,18 +70,14 @@ def main(stdscr):
     logging.basicConfig(filename='v3xkcd.log', level=logging.DEBUG)
     logging.debug('starting program')
 
-    data = None
-    with open('comicdata', 'r') as comicdata:
-        data = comicdata.read().split('\n')
-    title = 'Judgement Day'
-    hover_text = ('It took a lot of booster rockets, but luckily Amazon had recently built '
-                  'thousands of them to bring Amazon Prime same-day delivery to the Moon colony.')
+    title, hover_text, data = get_comic_data(1626, testing=True)
+
     pad_offset = [0, 0]
-    lines = text_to_lines(hover_text, img_dims[1])
     messages = []
+    pad, img_dims = calculate_screen_dims(stdscr.getmaxyx(), messages, [''])
+    lines = text_to_lines(hover_text, img_dims[1])
     while True:
-        pad, img_dims = calculate_screen_dims
-        img_dims[0] = stdscr.getmaxyx()[0] - pad[0] - pad[1]
+        pad, img_dims = calculate_screen_dims(stdscr.getmaxyx(), messages, lines)
         #if message is longer than screen width it will do weird things, not tested yet
         stdscr.erase()
         for i in range(img_dims[0]):
