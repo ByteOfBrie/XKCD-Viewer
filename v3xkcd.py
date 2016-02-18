@@ -1,6 +1,7 @@
 '''
 Drawille and curses xkcd reader
 '''
+import sys
 import curses
 import logging
 from bs4 import BeautifulSoup
@@ -62,6 +63,44 @@ def get_comic_data(comic_id, testing=False):
         url = 'http://xkcd.com/{}/'.format(comic_id)
         soup = BeautifulSoup(requests.get(url).text, 'html.parser')
 
+def parse_input(cmd, pad_offset, img_dims, data):
+    '''
+    handles all input
+    '''
+
+    message = None
+
+    if cmd == 'KEY_DOWN':
+        pad_offset[0] += PAD_MOVE_Y
+        if pad_offset[0] + img_dims[0] >= len(data):
+            message = 'Edge of image'
+            pad_offset[0] = len(data) - img_dims[0]
+            if pad_offset[0] < 0:
+                pad_offset[0] = 0
+    elif cmd == 'KEY_UP':
+        pad_offset[0] -= PAD_MOVE_Y
+        if pad_offset[0] <= 0:
+            message = 'Edge of image'
+            pad_offset[0] = 0
+    elif cmd == 'KEY_RIGHT':
+        pad_offset[1] += PAD_MOVE_X
+        if pad_offset[1] + img_dims[1] >= len(data[0]):
+            message = 'Edge of image'
+            pad_offset[1] = len(data[0]) - img_dims[1]
+            if pad_offset[1] < 0:
+                pad_offset[1] = 0
+    elif cmd == 'KEY_LEFT':
+        pad_offset[1] -= PAD_MOVE_X
+        if pad_offset[1] <= 0:
+            message = 'Edge of image'
+            pad_offset[1] = 0
+    elif cmd == 'q':
+        sys.exit(0)
+
+    return pad_offset, img_dims, message
+
+
+
 def main(stdscr):   #too many branches, 23/12
     '''
     Curses fuction
@@ -91,49 +130,6 @@ def main(stdscr):   #too many branches, 23/12
         cmd = stdscr.getkey()
         logging.debug('cmd = %s', cmd)
         messages = []
-        if cmd == 'KEY_DOWN':
-            if pad_offset[0] + img_dims[0] >= len(data):
-                messages.append('Edge of image')
-                logging.debug('prevented scrolling at bottom of image')
-            elif pad_offset[0] + img_dims[0] + PAD_MOVE_Y >= len(data):
-                pad_offset[0] = len(data) - img_dims[0]
-                if pad_offset[0] < 0:
-                    pad_offset[0] = 0
-            else:
-                pad_offset[0] += PAD_MOVE_Y
-                logging.debug('cmd += %g', PAD_MOVE_Y)
-        elif cmd == 'KEY_UP':
-            if pad_offset[0] <= 0:
-                messages.append('Edge of image')
-                logging.debug('prevented scrolling at top of image')
-            elif pad_offset[0] - PAD_MOVE_Y <= 0:
-                pad_offset[0] = 0
-            else:
-                pad_offset[0] -= PAD_MOVE_Y
-                logging.debug('cmd -= %g', PAD_MOVE_Y)
-        elif cmd == 'KEY_RIGHT':
-            if pad_offset[1] + img_dims[1] >= len(data[0]):
-                messages.append('Edge of image')
-                logging.debug('prevented scrolling at side of image')
-            elif pad_offset[1] + img_dims[1] + PAD_MOVE_X >= len(data[0]):
-                pad_offset[1] = len(data[0]) - img_dims[1]
-                if pad_offset[1] < 0:
-                    pad_offset[1] = 0
-            else:
-                pad_offset[1] += PAD_MOVE_X
-                logging.debug('pad_offset[0] += %g', PAD_MOVE_X)
-        elif cmd == 'KEY_LEFT':
-            if pad_offset[1] <= 0:
-                messages.append('Edge of image')
-                logging.debug('prevented scrolling at top of image')
-            elif pad_offset[1] - PAD_MOVE_X <= 0:
-                pad_offset[1] = 0
-            else:
-                pad_offset[1] -= PAD_MOVE_X
-                logging.debug('pad_offset[0] -= %g', PAD_MOVE_X)
-        elif cmd == 'q':
-            return
-
 
 
 if __name__ == '__main__':
