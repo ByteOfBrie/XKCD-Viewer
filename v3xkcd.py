@@ -6,6 +6,7 @@ import curses
 import logging
 from bs4 import BeautifulSoup
 #from drawille import Canvas, getTerminalSize
+import time
 import requests
 from io import BytesIO
 from PIL import Image
@@ -40,7 +41,7 @@ def calculate_screen_dims(screen_size, messages, lines):
     pad[2] = 5
     pad[3] = 5
     img_dims[1] = screen_size[1] - pad[2] - pad[3]
-    pad[0] = 3 + len(messages)
+    pad[0] = 3 + len(messages) if messages else 4
     pad[1] = 2 + len(lines)
     img_dims[0] = screen_size[0] - pad[0] - pad[1]
     return pad, img_dims
@@ -111,7 +112,7 @@ def main(stdscr):
     title, hover_text, data = get_comic_data(1626, testing=True)
 
     pad_offset = [0, 0]
-    messages = ['']
+    messages = []
 
     pad, img_dims = calculate_screen_dims(stdscr.getmaxyx(), messages, [''])
     lines = text_to_lines(hover_text, img_dims[1])
@@ -125,16 +126,15 @@ def main(stdscr):
                 stdscr.addstr(i + pad[0], pad[2],
                               data[i+pad_offset[0]][pad_offset[1] : pad_offset[1]+j])
         stdscr.addstr(1, pad[2], 'Title: {}'.format(title))
-        for i, message in iter(messages):
-            stdscr.addstr(2 + i, pad[2], message)
+        messages = list(item for item in messages if item)
+        if messages:
+            logging.debug(messages)
+            for i, message in enumerate(messages):
+                stdscr.addstr(2 + i, pad[2], message)
         cmd = stdscr.getkey()
-        messages = ['']
 
         pad_offset, message = parse_input(cmd, pad_offset, img_dims, data)
-        if messages[0] == '':
-            messages[0] = message
-        else:
-            messages.append(message)
+        messages = [message]
 
 if __name__ == '__main__':
     curses.wrapper(main)
