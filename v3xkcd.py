@@ -40,7 +40,7 @@ def calculate_screen_dims(screen_size, messages, lines):
     pad[2] = 5
     pad[3] = 5
     img_dims[1] = screen_size[1] - pad[2] - pad[3]
-    pad[0] = 4 if len(messages) == 0 else 3 + len(messages)
+    pad[0] = 3 + len(messages)
     pad[1] = 2 + len(lines)
     img_dims[0] = screen_size[0] - pad[0] - pad[1]
     return pad, img_dims
@@ -97,11 +97,10 @@ def parse_input(cmd, pad_offset, img_dims, data):
     elif cmd == 'q':
         sys.exit(0)
 
-    return pad_offset, img_dims, message
+    return pad_offset, message
 
 
-
-def main(stdscr):   #too many branches, 23/12
+def main(stdscr):
     '''
     Curses fuction
     '''
@@ -112,12 +111,13 @@ def main(stdscr):   #too many branches, 23/12
     title, hover_text, data = get_comic_data(1626, testing=True)
 
     pad_offset = [0, 0]
-    messages = []
+    messages = ['']
+
     pad, img_dims = calculate_screen_dims(stdscr.getmaxyx(), messages, [''])
     lines = text_to_lines(hover_text, img_dims[1])
     while True:
         pad, img_dims = calculate_screen_dims(stdscr.getmaxyx(), messages, lines)
-        #if message is longer than screen width it will do weird things, not tested yet
+        #if message is longer than screen width it will probably do weird things, not tested yet
         stdscr.erase()
         for i in range(img_dims[0]):
             if i + pad_offset[0] < len(data):
@@ -128,9 +128,13 @@ def main(stdscr):   #too many branches, 23/12
         for i, message in iter(messages):
             stdscr.addstr(2 + i, pad[2], message)
         cmd = stdscr.getkey()
-        logging.debug('cmd = %s', cmd)
-        messages = []
+        messages = ['']
 
+        pad_offset, message = parse_input(cmd, pad_offset, img_dims, data)
+        if messages[0] == '':
+            messages[0] = message
+        else:
+            messages.append(message)
 
 if __name__ == '__main__':
     curses.wrapper(main)
