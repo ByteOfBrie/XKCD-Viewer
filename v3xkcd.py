@@ -9,6 +9,7 @@ from drawille import Canvas
 import requests
 from io import BytesIO
 from PIL import Image
+import time
 
 PAD_MOVE_X = 5
 PAD_MOVE_Y = 5
@@ -165,8 +166,9 @@ def main(stdscr):
         if not loaded:
             loaded = True
             stdscr.erase()
-            stdscr.addstr(stdscr.getmaxyx()[0]//2, 5, 'loading...')
-            title, hover_text, img = get_comic_img(comic_id)
+            stdscr.addstr(stdscr.getmaxyx()[0]//2, stdscr.getmaxyx()[1]//2 - 5, 'loading...')
+            stdscr.refresh()
+            title, hover_text, img = get_comic_img(comic_id, testing=True)
 
             pad_offset = [0, 0]
             messages = []
