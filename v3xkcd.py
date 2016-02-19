@@ -9,10 +9,70 @@ from drawille import Canvas
 import requests
 from io import BytesIO
 from PIL import Image
-import time
 
 PAD_MOVE_X = 5
 PAD_MOVE_Y = 5
+
+class XKCDViewer():
+    '''
+    the non-user interface parts of the xkcd viewer
+    '''
+    def __init__(self, comic_id=1626):
+        self.comic_id = comic_id
+
+def main(stdscr):
+    '''
+    Curses fuction
+    '''
+
+    logging.basicConfig(filename='v3xkcd.log', level=logging.DEBUG)
+    logging.debug('starting program')
+
+    comic_id = 1626
+    loaded = False
+
+    while True:
+
+        if not loaded:
+            loaded = True
+            stdscr.erase()
+            stdscr.addstr(stdscr.getmaxyx()[0]//2, stdscr.getmaxyx()[1]//2 - 5, 'loading...')
+            stdscr.refresh()
+            title, hover_text, img = get_comic_img(comic_id, testing=True)
+
+            pad_offset = [0, 0]
+            messages = []
+
+            pad, img_dims = calculate_screen_dims(stdscr.getmaxyx(), messages, [''])
+            lines = text_to_lines(hover_text, img_dims[1])
+            logging.debug(lines)
+
+        pad, img_dims = calculate_screen_dims(stdscr.getmaxyx(), messages, lines)
+        #if message is longer than screen width it will probably do weird things, not tested yet
+        stdscr.erase()
+        for i in range(img_dims[0]):
+            if i + pad_offset[0] < len(img):
+                j = img_dims[1] if img_dims[1] < len(img[0]) else len(img[0])
+                stdscr.addstr(i + pad[0], pad[2],
+                              img[i+pad_offset[0]][pad_offset[1] : pad_offset[1]+j])
+        for i, line in enumerate(lines):
+            stdscr.addstr(stdscr.getmaxyx()[0] - pad[1] + 1 + i, pad[2], line)
+        stdscr.addstr(1, pad[2], 'Title: {}'.format(title))
+        messages = list(item for item in messages if item)
+        if messages:
+            logging.debug(messages)
+            for i, message in enumerate(messages):
+                stdscr.addstr(2 + i, pad[2], message)
+        cmd = stdscr.getkey()
+
+        pad_offset, message, movement = parse_input(cmd, pad_offset, img_dims, img)
+        if movement is None:
+            messages = [message]
+        else:
+            comic_id += movement
+            loaded = False
+
+
 
 def text_to_lines(hover_text, line_width):
     '''
@@ -149,58 +209,6 @@ def find_comic_ids(soup):
 
     return previd, currentid, nextid
 
-
-def main(stdscr):
-    '''
-    Curses fuction
-    '''
-
-    logging.basicConfig(filename='v3xkcd.log', level=logging.DEBUG)
-    logging.debug('starting program')
-
-    comic_id = 1626
-    loaded = False
-
-    while True:
-
-        if not loaded:
-            loaded = True
-            stdscr.erase()
-            stdscr.addstr(stdscr.getmaxyx()[0]//2, stdscr.getmaxyx()[1]//2 - 5, 'loading...')
-            stdscr.refresh()
-            title, hover_text, img = get_comic_img(comic_id, testing=True)
-
-            pad_offset = [0, 0]
-            messages = []
-
-            pad, img_dims = calculate_screen_dims(stdscr.getmaxyx(), messages, [''])
-            lines = text_to_lines(hover_text, img_dims[1])
-            logging.debug(lines)
-
-        pad, img_dims = calculate_screen_dims(stdscr.getmaxyx(), messages, lines)
-        #if message is longer than screen width it will probably do weird things, not tested yet
-        stdscr.erase()
-        for i in range(img_dims[0]):
-            if i + pad_offset[0] < len(img):
-                j = img_dims[1] if img_dims[1] < len(img[0]) else len(img[0])
-                stdscr.addstr(i + pad[0], pad[2],
-                              img[i+pad_offset[0]][pad_offset[1] : pad_offset[1]+j])
-        for i, line in enumerate(lines):
-            stdscr.addstr(stdscr.getmaxyx()[0] - pad[1] + 1 + i, pad[2], line)
-        stdscr.addstr(1, pad[2], 'Title: {}'.format(title))
-        messages = list(item for item in messages if item)
-        if messages:
-            logging.debug(messages)
-            for i, message in enumerate(messages):
-                stdscr.addstr(2 + i, pad[2], message)
-        cmd = stdscr.getkey()
-
-        pad_offset, message, movement = parse_input(cmd, pad_offset, img_dims, img)
-        if movement is None:
-            messages = [message]
-        else:
-            comic_id += movement
-            loaded = False
 
 if __name__ == '__main__':
     curses.wrapper(main)
