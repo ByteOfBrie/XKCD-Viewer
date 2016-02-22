@@ -13,12 +13,82 @@ from PIL import Image
 PAD_MOVE_X = 5
 PAD_MOVE_Y = 5
 
-class XKCDViewer():
+class XKCDparser():
     '''
     the non-user interface parts of the xkcd viewer
     '''
     def __init__(self, comic_id=1626):
-        self.comic_id = comic_id
+        self.ids = [None, comic_id, None]
+        self.title = None
+        self.hover_text = None
+        self.raw_img = None
+        self.img = None
+        self.parse_xkcd()
+
+    def parse_xkcd(self):
+        '''
+        Gets all the data from the xkcd website, should probably be cleaned up a little bit
+        '''
+        url = 'http://xkcd.com/{}/'.format(self.ids[1])
+        soup = BeautifulSoup(requests.get(url).text, 'html.parser')
+        comic_data = soup.find(id='comic').contents[1]
+        img_url = 'http:' + str(comic_data.get('src'))
+        logging.debug('loading %s', img_url)
+        self.title = comic_data.get('alt')
+        self.hover_text = comic_data.get('title')
+        pic_data = requests.get(img_url)
+        raw_img_bytes = Image.open(BytesIO(pic_data.content))
+        self.raw_img = make_canvas(raw_img_bytes).split('\n')
+        try:
+            self.previd = int(soup.find(rel='prev').get('href')[1:-1])
+        except ValueError:
+            pass
+        try:
+            self.nextid = soup.find(rel='next').get('href')[1:-1]
+        except ValueError:
+            pass
+
+    def _make_canvas(self):
+        '''
+        use drawille functions to convert the image to text
+        '''
+        can = Canvas()
+        img_bytes = self.raw_img.tobytes()
+        place = [0, 0]
+
+        for pix in img_bytes:
+            if pix < 128:
+                can.set(place[0], place[1])
+                place[0] += 1
+            if place[0] >= self.raw_img.size[0]:
+                place[1] += 1
+                place[0] = 0
+        self.img = can.frame()
+
+    def next_comic(self):
+        '''
+        goes to the next comic if it exists
+        '''
+        if self.ids[2] is not None:
+            self.ids[1] = self.ids[2]
+            self.parse_xkcd()
+        else:
+            logging.info('no next comic found')
+
+    def prev_comic(self):
+        '''
+        goes to the prev comic if it exists
+        '''
+        if self.ids[0] is not None:
+            self.ids[1] = self.ids[0]
+            self.parse_xkcd()
+        else:
+            logging.info('no prev comic found')
+
+    def rand_comic(self):
+        '''
+        should parse xkcd's website for this
+        '''
 
 def main(stdscr):
     '''
@@ -28,11 +98,11 @@ def main(stdscr):
     logging.basicConfig(filename='v3xkcd.log', level=logging.DEBUG)
     logging.debug('starting program')
 
+    viewer = XKCDparser(comic_id=1626)
     comic_id = 1626
     loaded = False
 
     while True:
-
         if not loaded:
             loaded = True
             stdscr.erase()
@@ -48,7 +118,6 @@ def main(stdscr):
             logging.debug(lines)
 
         pad, img_dims = calculate_screen_dims(stdscr.getmaxyx(), messages, lines)
-        #if message is longer than screen width it will probably do weird things, not tested yet
         stdscr.erase()
         for i in range(img_dims[0]):
             if i + pad_offset[0] < len(img):
@@ -71,8 +140,6 @@ def main(stdscr):
         else:
             comic_id += movement
             loaded = False
-
-
 
 def text_to_lines(hover_text, line_width):
     '''
