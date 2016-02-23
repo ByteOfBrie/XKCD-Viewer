@@ -65,8 +65,9 @@ class XKCDParser():
             if place[0] >= self.raw_img.size[0]:
                 place[1] += 1
                 place[0] = 0
-        self.img = can.frame().split('\n')
-        logging.debug('made canvas %s %s', len(self.img), len(self.img[0]))
+        self.img = can.rows()
+        logging.debug('row 0 len %s', len(can.rows()[0]))
+        logging.debug('made canvas %s %s', len(self.img), len(max(self.img, key=len)))
 
     def next_comic(self):
         '''
@@ -100,6 +101,7 @@ def main(stdscr):
 
     logging.basicConfig(filename='v3xkcd.log', level=logging.DEBUG)
     logging.debug('starting program')
+    logging.debug('screen size %s', str(stdscr.getmaxyx()))
 
     loading(stdscr)
     parser = XKCDParser(comic_id=1625)
@@ -111,21 +113,18 @@ def main(stdscr):
             messages = []
             pad_offset = [0, 0]
 
-            pad, img_dims = calculate_screen_dims(stdscr.getmaxyx(), messages, [''])
-            lines = text_to_lines(parser.hover_text, img_dims[1])
-            pad, img_dims = calculate_screen_dims(stdscr.getmaxyx(), messages, lines)
+            pad, disp_dims = calculate_screen_dims(stdscr.getmaxyx(), messages, [''])
+            lines = text_to_lines(parser.hover_text, disp_dims[1])
+            pad, disp_dims = calculate_screen_dims(stdscr.getmaxyx(), messages, lines)
 
         stdscr.erase()
         img = parser.img
-        logging.debug('%s %s', len(img), len(img[0]))
-        for i in range(img_dims[0]):
-            j = len(img[0])
-            if img_dims[1] < len(img[0]):
-                j = img_dims[1]
-                logging.debug('j = img_dims[1]')
-            else:
-                logging.debug('j = len(img[0])')
-            #j = img_dims[1] if img_dims[1] < len(img[0]) else len(img[0])
+        img_dims = [len(img), len(max(img, key=len))]
+        logging.debug('len(img), len(img[0]) %s', str(img_dims))
+        logging.debug('disp_dims %s', str(disp_dims))
+        for i in range(disp_dims[0]):
+            logging.debug(len(img[i]))
+            j = disp_dims[1] if disp_dims[1] < img_dims[1] else img_dims[1]
             stdscr.addstr(i + pad[0], pad[2],
                           img[i+pad_offset[0]][pad_offset[1] : pad_offset[1]+j])
         for i, line in enumerate(lines):
@@ -138,7 +137,7 @@ def main(stdscr):
                 stdscr.addstr(2 + i, pad[2], message)
         cmd = stdscr.getkey()
 
-        pad_offset, message, movement = parse_input(cmd, pad_offset, img_dims, img)
+        pad_offset, message, movement = parse_input(cmd, pad_offset, disp_dims, img_dims)
         if movement is None:
             messages = [message]
         elif movement == 1:
@@ -183,15 +182,14 @@ def calculate_screen_dims(screen_size, messages, lines):
     calculates and returns a tuple of the pad and the image width
     '''
     pad = [0, 0, 0, 0]          #top bottom left right
-    img_dims = [0, 0]
+    disp_dims = [0, 0]
     pad[2] = 5
     pad[3] = 5
-    img_dims[1] = screen_size[1] - pad[2] - pad[3]
+    disp_dims[1] = screen_size[1] - pad[2] - pad[3]
     pad[0] = 3 + len(messages) if messages else 4
     pad[1] = 2 + len(lines)
-    img_dims[0] = screen_size[0] - pad[0] - pad[1]
-    logging.debug('img_dims %s', str(img_dims))
-    return pad, img_dims
+    disp_dims[0] = screen_size[0] - pad[0] - pad[1]
+    return pad, disp_dims
 
 def make_canvas(raw_img):
     '''
@@ -237,7 +235,7 @@ def get_comic_img(comic_id, testing=False):
         img = make_canvas(raw_img).split('\n')
         return title, hover_text, img
 
-def parse_input(cmd, pad_offset, img_dims, img):
+def parse_input(cmd, pad_offset, disp_dims, img_dims):
     '''
     handles all input
     '''
@@ -246,9 +244,9 @@ def parse_input(cmd, pad_offset, img_dims, img):
 
     if cmd == 'KEY_DOWN':
         pad_offset[0] += PAD_MOVE_Y
-        if pad_offset[0] + img_dims[0] >= len(img):
+        if pad_offset[0] + disp_dims[0] >= img_dims[0]:
             message = 'Edge of image'
-            pad_offset[0] = len(img) - img_dims[0]
+            pad_offset[0] = img_dims[0] - disp_dims[0]
             if pad_offset[0] < 0:
                 pad_offset[0] = 0
     elif cmd == 'KEY_UP':
@@ -258,9 +256,9 @@ def parse_input(cmd, pad_offset, img_dims, img):
             pad_offset[0] = 0
     elif cmd == 'KEY_RIGHT':
         pad_offset[1] += PAD_MOVE_X
-        if pad_offset[1] + img_dims[1] >= len(img[0]):
+        if pad_offset[1] + disp_dims[1] >= img_dims[1]:
             message = 'Edge of image'
-            pad_offset[1] = len(img[0]) - img_dims[1]
+            pad_offset[1] = img_dims[1] - disp_dims[1]
             if pad_offset[1] < 0:
                 pad_offset[1] = 0
     elif cmd == 'KEY_LEFT':
