@@ -93,6 +93,8 @@ class XKCDParser():
         '''
         should parse xkcd's website for this
         '''
+        self.ids[1] = requests.get('http://c.xkcd.com/random/comic/').url[16:-1]
+        self.parse_xkcd()
 
 def main(stdscr):
     '''
@@ -122,14 +124,14 @@ def main(stdscr):
         img_dims = [len(img), len(max(img, key=len))]
         logging.debug('len(img), len(img[0]) %s', str(img_dims))
         logging.debug('disp_dims %s', str(disp_dims))
-        for i in range(disp_dims[0]):
-            logging.debug(len(img[i]))
+        vert = disp_dims[0] if disp_dims[0] < img_dims[0] else img_dims[0]
+        for i in range(vert):
             j = disp_dims[1] if disp_dims[1] < img_dims[1] else img_dims[1]
             stdscr.addstr(i + pad[0], pad[2],
                           img[i+pad_offset[0]][pad_offset[1] : pad_offset[1]+j])
         for i, line in enumerate(lines):
             stdscr.addstr(stdscr.getmaxyx()[0] - pad[1] + 1 + i, pad[2], line)
-        stdscr.addstr(1, pad[2], 'Title: {}'.format(parser.title))
+        stdscr.addstr(1, pad[2], 'Title: {}\t{}'.format(parser.title, parser.ids[1]))
         messages = list(item for item in messages if item)
         if messages:
             logging.debug(messages)
@@ -143,6 +145,10 @@ def main(stdscr):
         elif movement == 1:
             loading(stdscr)
             parser.next_comic()
+            loaded = False
+        elif movement == 0:
+            loading(stdscr)
+            parser.rand_comic()
             loaded = False
         elif movement == -1:
             loading(stdscr)
@@ -268,6 +274,8 @@ def parse_input(cmd, pad_offset, disp_dims, img_dims):
             pad_offset[1] = 0
     elif cmd == 'z':
         return None, None, -1
+    elif cmd == 'x':
+        return None, None, 0
     elif cmd == 'c':
         return None, None, 1
     elif cmd == 'q':
