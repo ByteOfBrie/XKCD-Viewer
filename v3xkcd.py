@@ -13,7 +13,7 @@ from PIL import Image
 PAD_MOVE_X = 5
 PAD_MOVE_Y = 5
 
-class XKCDparser():
+class XKCDParser():
     '''
     the non-user interface parts of the xkcd viewer
     '''
@@ -37,16 +37,18 @@ class XKCDparser():
         self.title = comic_data.get('alt')
         self.hover_text = comic_data.get('title')
         pic_data = requests.get(img_url)
-        raw_img_bytes = Image.open(BytesIO(pic_data.content))
-        self.raw_img = make_canvas(raw_img_bytes).split('\n')
+        self.raw_img = Image.open(BytesIO(pic_data.content))
+        logging.debug(self.raw_img)
         try:
-            self.previd = int(soup.find(rel='prev').get('href')[1:-1])
+            self.ids[0] = int(soup.find(rel='prev').get('href')[1:-1])
         except ValueError:
             pass
         try:
-            self.nextid = soup.find(rel='next').get('href')[1:-1]
+            self.ids[2] = soup.find(rel='next').get('href')[1:-1]
         except ValueError:
             pass
+        self._make_canvas()
+        logging.debug(self.img)
 
     def _make_canvas(self):
         '''
@@ -59,11 +61,12 @@ class XKCDparser():
         for pix in img_bytes:
             if pix < 128:
                 can.set(place[0], place[1])
-                place[0] += 1
+            place[0] += 1
             if place[0] >= self.raw_img.size[0]:
                 place[1] += 1
                 place[0] = 0
-        self.img = can.frame()
+        self.img = can.frame().split('\n')
+        logging.debug('made canvas %s %s', len(self.img), len(self.img[0]))
 
     def next_comic(self):
         '''
@@ -98,35 +101,36 @@ def main(stdscr):
     logging.basicConfig(filename='v3xkcd.log', level=logging.DEBUG)
     logging.debug('starting program')
 
-    viewer = XKCDparser(comic_id=1626)
-    comic_id = 1626
+    loading(stdscr)
+    parser = XKCDParser(comic_id=1625)
     loaded = False
 
     while True:
         if not loaded:
             loaded = True
-            stdscr.erase()
-            stdscr.addstr(stdscr.getmaxyx()[0]//2, stdscr.getmaxyx()[1]//2 - 5, 'loading...')
-            stdscr.refresh()
-            title, hover_text, img = get_comic_img(comic_id, testing=True)
-
-            pad_offset = [0, 0]
             messages = []
+            pad_offset = [0, 0]
 
             pad, img_dims = calculate_screen_dims(stdscr.getmaxyx(), messages, [''])
-            lines = text_to_lines(hover_text, img_dims[1])
-            logging.debug(lines)
+            lines = text_to_lines(parser.hover_text, img_dims[1])
+            pad, img_dims = calculate_screen_dims(stdscr.getmaxyx(), messages, lines)
 
-        pad, img_dims = calculate_screen_dims(stdscr.getmaxyx(), messages, lines)
         stdscr.erase()
+        img = parser.img
+        logging.debug('%s %s', len(img), len(img[0]))
         for i in range(img_dims[0]):
-            if i + pad_offset[0] < len(img):
-                j = img_dims[1] if img_dims[1] < len(img[0]) else len(img[0])
-                stdscr.addstr(i + pad[0], pad[2],
-                              img[i+pad_offset[0]][pad_offset[1] : pad_offset[1]+j])
+            j = len(img[0])
+            if img_dims[1] < len(img[0]):
+                j = img_dims[1]
+                logging.debug('j = img_dims[1]')
+            else:
+                logging.debug('j = len(img[0])')
+            #j = img_dims[1] if img_dims[1] < len(img[0]) else len(img[0])
+            stdscr.addstr(i + pad[0], pad[2],
+                          img[i+pad_offset[0]][pad_offset[1] : pad_offset[1]+j])
         for i, line in enumerate(lines):
             stdscr.addstr(stdscr.getmaxyx()[0] - pad[1] + 1 + i, pad[2], line)
-        stdscr.addstr(1, pad[2], 'Title: {}'.format(title))
+        stdscr.addstr(1, pad[2], 'Title: {}'.format(parser.title))
         messages = list(item for item in messages if item)
         if messages:
             logging.debug(messages)
@@ -137,9 +141,22 @@ def main(stdscr):
         pad_offset, message, movement = parse_input(cmd, pad_offset, img_dims, img)
         if movement is None:
             messages = [message]
-        else:
-            comic_id += movement
+        elif movement == 1:
+            loading(stdscr)
+            parser.next_comic()
             loaded = False
+        elif movement == -1:
+            loading(stdscr)
+            parser.prev_comic()
+            loaded = False
+
+def loading(stdscr):
+    '''
+    displays the loading message on screen
+    '''
+    stdscr.erase()
+    stdscr.addstr(stdscr.getmaxyx()[0]//2, stdscr.getmaxyx()[1]//2 - 5, 'loading...')
+    stdscr.refresh()
 
 def text_to_lines(hover_text, line_width):
     '''
@@ -173,6 +190,7 @@ def calculate_screen_dims(screen_size, messages, lines):
     pad[0] = 3 + len(messages) if messages else 4
     pad[1] = 2 + len(lines)
     img_dims[0] = screen_size[0] - pad[0] - pad[1]
+    logging.debug('img_dims %s', str(img_dims))
     return pad, img_dims
 
 def make_canvas(raw_img):
