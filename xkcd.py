@@ -99,7 +99,7 @@ def main(stdscr):
     Curses fuction
     '''
 
-    logging.basicConfig(filename='v3xkcd.log', level=logging.DEBUG)
+    logging.basicConfig(filename='xkcdviewer.log', level=logging.DEBUG)
     logging.debug('starting program')
     logging.debug('screen size %s', str(stdscr.getmaxyx()))
 
