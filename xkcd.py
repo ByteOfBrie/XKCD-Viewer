@@ -96,6 +96,10 @@ class XKCDParser():
         self.ids[1] = requests.get('http://c.xkcd.com/random/comic/').url[16:-1]
         self.parse_xkcd()
 
+    def set_id(self, comic_id):
+        self.ids[1] = comic_id
+        self.parse_xkcd()
+
 def main(stdscr):
     '''
     Curses fuction
@@ -141,7 +145,10 @@ def main(stdscr):
 
         pad_offset, message, movement = parse_input(cmd, pad_offset, disp_dims, img_dims)
         if movement is None:
-            messages = [message]
+            if new_id is None:
+                messages = [message]
+            else:
+                parser.set_id(new_id)
         elif movement == 1:
             loading(stdscr)
             parser.next_comic()
