@@ -204,50 +204,6 @@ def calculate_screen_dims(screen_size, messages, lines):
     disp_dims[0] = screen_size[0] - pad[0] - pad[1]
     return pad, disp_dims
 
-def make_canvas(raw_img):
-    '''
-    use drawille functions to convert the image to text
-    '''
-    can = Canvas()
-    img_bytes = raw_img.tobytes()
-    place = [0, 0]
-
-    for pix in img_bytes:
-        if pix < 128:
-            can.set(place[0], place[1])
-        place[0] += 1
-        if place[0] >= raw_img.size[0]:
-            place[1] += 1
-            place[0] = 0
-    return can.frame()
-
-def get_comic_img(comic_id, testing=False):
-    '''
-    gets the image, name, and hover text from xkcd.com for the number
-    if testing is true it uses a saved comic (#1626)
-    '''
-    if testing:
-        img = None
-        with open('comicdata', 'r') as comicdata:
-            img = comicdata.read().split('\n')
-        title = 'Judgement Day'
-        hover_text = ('It took a lot of booster rockets, but luckily Amazon had recently built '
-                      'thousands of them to bring Amazon Prime '
-                      'same-day delivery to the Moon colony.')
-        return title, hover_text, img
-    else:
-        url = 'http://xkcd.com/{}/'.format(comic_id)
-        soup = BeautifulSoup(requests.get(url).text, 'html.parser')
-        comic_data = soup.find(id='comic').contents[1]
-        img_url = 'http:' + str(comic_data.get('src'))
-        logging.debug('img url %s', img_url)
-        title = comic_data.get('alt')
-        hover_text = comic_data.get('title')
-        pic_data = requests.get(img_url)
-        raw_img = Image.open(BytesIO(pic_data.content))
-        img = make_canvas(raw_img).split('\n')
-        return title, hover_text, img
-
 def parse_input(cmd, pad_offset, disp_dims, img_dims):
     '''
     handles all input
