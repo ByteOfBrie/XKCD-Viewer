@@ -17,7 +17,7 @@ class XKCDParser():
     '''
     the non-user interface parts of the xkcd viewer
     '''
-    def __init__(self, comic_id=1626):
+    def __init__(self, comic_id=''):
         self.ids = [None, comic_id, None]
         self.title = None
         self.hover_text = None
@@ -27,7 +27,7 @@ class XKCDParser():
 
     def parse_xkcd(self):
         '''
-        Gets all the data from the xkcd website, should probably be cleaned up a little bit
+        Gets all the data from the xkcd website, should probably be cleaned up a little
         '''
         url = 'http://xkcd.com/{}/'.format(self.ids[1])
         soup = BeautifulSoup(requests.get(url).text, 'html.parser')
@@ -145,10 +145,7 @@ def main(stdscr):
 
         pad_offset, message, movement = parse_input(cmd, pad_offset, disp_dims, img_dims)
         if movement is None:
-            if new_id is None:
-                messages = [message]
-            else:
-                parser.set_id(new_id)
+            messages = [message]
         elif movement == 1:
             loading(stdscr)
             parser.next_comic()
