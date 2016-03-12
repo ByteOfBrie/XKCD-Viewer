@@ -14,8 +14,9 @@ class XKCDViewer():
     '''
     basic control sof the image
     '''
-    def __init__(self, stdscr):
-        self.parser = XKCDParser()
+    def __init__(self, stdscr, parser):
+        self.parser = parser
+        self.text = [None, None]
         self.stdscr = stdscr
         self.pad = [0, 0, 0, 0]
         self.pad_offest = [0, 0]
@@ -28,19 +29,20 @@ class XKCDViewer():
         self.stdscr.addstr(self.stdscr.getmaxyx()[0]//2,
                            self.stdscr.getmaxyx()[1]//2-5, 'loading...')
         self.stdscr.refresh()
-    
+
     def set_up_for_viewing(self):
         '''
         runs the basic functions
         '''
 
-        self._text_to_lines()
+        self.text[0] = self._text_to_lines()
 
-    def _text_to_lines(self, hover_text, line_width):
+
+    def _text_to_lines(self, line_width):
         '''
         splits a string of words into lines of a given width
         '''
-        hover_words = hover_text.split(' ')
+        hover_words = self.parser.hover_text.split(' ')
         hover_lines = []
         line = ''
         for word in hover_words:
@@ -66,7 +68,7 @@ def main(stdscr):
 
 
     parser = XKCDParser()
-    viewer = XKCDViewer(stdscr)
+    viewer = XKCDViewer(stdscr, parser)
     viewer.loading()
 
     loaded = False
