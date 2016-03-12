@@ -16,10 +16,13 @@ class XKCDViewer():
     '''
     def __init__(self, stdscr, parser):
         self.parser = parser
-        self.text = [None, None]
+        self.messages = []
+        self.text = ['', ['']]
         self.stdscr = stdscr
         self.pad = [0, 0, 0, 0]
         self.pad_offest = [0, 0]
+        self.disp_dims  =[0, 0, 0, 0]
+        self.lines = ['']
 
     def loading(self):
         '''
@@ -30,6 +33,20 @@ class XKCDViewer():
                            self.stdscr.getmaxyx()[1]//2-5, 'loading...')
         self.stdscr.refresh()
 
+    def set_up_padding(self):
+        '''
+        creates the pads for the screen
+        '''
+        self.pad_offset = [0, 0]
+        self.pad, self.disp_dims = calculate_screen_dims(self.stdscr.getmaxyx(), 
+                                                         self.messages, 
+                                                         self.text[1])
+        
+        self._text_to_lines()
+        self.pad, self.disp_dims = calculate_screen_dims(self.stdscr.getmaxyx(),
+                                                         self.messages,
+                                                         self.text[1])
+
     def set_up_for_viewing(self):
         '''
         runs the basic functions
@@ -38,10 +55,11 @@ class XKCDViewer():
         self.text[0] = self._text_to_lines()
 
 
-    def _text_to_lines(self, line_width):
+    def _text_to_lines(self):
         '''
         splits a string of words into lines of a given width
         '''
+        line_width = self.disp_dims[1]
         hover_words = self.parser.hover_text.split(' ')
         hover_lines = []
         line = ''
@@ -55,7 +73,7 @@ class XKCDViewer():
                 hover_lines.append(line)
                 line = word
         hover_lines.append(line)
-        return hover_lines
+        self.text[1] = hover_lines
 
 
 
@@ -73,14 +91,7 @@ def main(stdscr):
 
     loaded = False
     while True:
-        if not loaded:
-            loaded = True
-            messages = []
-            pad_offset = [0, 0]
-
-            pad, disp_dims = calculate_screen_dims(stdscr.getmaxyx(), messages, [''])
-            lines = text_to_lines(parser.hover_text, disp_dims[1])
-            pad, disp_dims = calculate_screen_dims(stdscr.getmaxyx(), messages, lines)
+        viewer.set_up_padding()
 
         stdscr.erase()
         img = parser.img
