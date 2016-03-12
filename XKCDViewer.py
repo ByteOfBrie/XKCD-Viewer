@@ -14,8 +14,48 @@ class XKCDViewer():
     '''
     basic control sof the image
     '''
-    def __init__(self):
+    def __init__(self, stdscr):
         self.parser = XKCDParser()
+        self.stdscr = stdscr
+        self.pad = [0, 0, 0, 0]
+        self.pad_offest = [0, 0]
+
+    def loading(self):
+        '''
+        displays the loading message
+        '''
+        self.stdscr.erase()
+        self.stdscr.addstr(self.stdscr.getmaxyx()[0]//2,
+                           self.stdscr.getmaxyx()[1]//2-5, 'loading...')
+        self.stdscr.refresh()
+    
+    def set_up_for_viewing(self):
+        '''
+        runs the basic functions
+        '''
+
+        self._text_to_lines()
+
+    def _text_to_lines(self, hover_text, line_width):
+        '''
+        splits a string of words into lines of a given width
+        '''
+        hover_words = hover_text.split(' ')
+        hover_lines = []
+        line = ''
+        for word in hover_words:
+            if len(line) == 0:
+                line += word
+            elif len(line) + len(word) + 1 <= line_width:
+                line += ' '
+                line += word
+            else:
+                hover_lines.append(line)
+                line = word
+        hover_lines.append(line)
+        return hover_lines
+
+
 
 def main(stdscr):
     '''
@@ -24,8 +64,11 @@ def main(stdscr):
     logging.basicConfig(filename='xkcdviewer.log', level=logging.DEBUG)
     logging.info('starting program with screen size %s', str(stdscr.getmaxyx()))
 
-    loading(stdscr)
+
     parser = XKCDParser()
+    viewer = XKCDViewer(stdscr)
+    viewer.loading()
+
     loaded = False
     while True:
         if not loaded:
@@ -72,33 +115,6 @@ def main(stdscr):
             loading(stdscr)
             parser.prev_comic()
             loaded = False
-
-def loading(stdscr):
-    '''
-    displays the loading message
-    '''
-    stdscr.erase()
-    stdscr.addstr(stdscr.getmaxyx()[0]//2, stdscr.getmaxyx()[1]//2-5, 'loading...')
-    stdscr.refresh()
-
-def text_to_lines(hover_text, line_width):
-    '''
-    splits a string of words into lines of a given width
-    '''
-    hover_words = hover_text.split(' ')
-    hover_lines = []
-    line = ''
-    for word in hover_words:
-        if len(line) == 0:
-            line += word
-        elif len(line) + len(word) + 1 <= line_width:
-            line += ' '
-            line += word
-        else:
-            hover_lines.append(line)
-            line = word
-    hover_lines.append(line)
-    return hover_lines
 
 def calculate_screen_dims(screen_size, messages, lines):
     '''

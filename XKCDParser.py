@@ -1,17 +1,12 @@
 '''
 Drawille and curses xkcd reader
 '''
-import sys
-import curses
 import logging
 from bs4 import BeautifulSoup
 from drawille import Canvas
 import requests
 from io import BytesIO
 from PIL import Image
-
-PAD_MOVE_X = 5
-PAD_MOVE_Y = 5
 
 class XKCDParser():
     '''
@@ -97,169 +92,8 @@ class XKCDParser():
         self.parse_xkcd()
 
     def set_id(self, comic_id):
+        '''
+        loads a given comic
+        '''
         self.ids[1] = comic_id
         self.parse_xkcd()
-
-def main(stdscr):
-    '''
-    Curses fuction
-    '''
-
-    logging.basicConfig(filename='xkcdviewer.log', level=logging.DEBUG)
-    logging.debug('starting program')
-    logging.debug('screen size %s', str(stdscr.getmaxyx()))
-
-    loading(stdscr)
-    parser = XKCDParser(comic_id=1625)
-    loaded = False
-
-    while True:
-        if not loaded:
-            loaded = True
-            messages = []
-            pad_offset = [0, 0]
-
-            pad, disp_dims = calculate_screen_dims(stdscr.getmaxyx(), messages, [''])
-            lines = text_to_lines(parser.hover_text, disp_dims[1])
-            pad, disp_dims = calculate_screen_dims(stdscr.getmaxyx(), messages, lines)
-
-        stdscr.erase()
-        img = parser.img
-        img_dims = [len(img), len(max(img, key=len))]
-        logging.debug('len(img), len(img[0]) %s', str(img_dims))
-        logging.debug('disp_dims %s', str(disp_dims))
-        vert = disp_dims[0] if disp_dims[0] < img_dims[0] else img_dims[0]
-        for i in range(vert):
-            j = disp_dims[1] if disp_dims[1] < img_dims[1] else img_dims[1]
-            stdscr.addstr(i + pad[0], pad[2],
-                          img[i+pad_offset[0]][pad_offset[1] : pad_offset[1]+j])
-        for i, line in enumerate(lines):
-            stdscr.addstr(stdscr.getmaxyx()[0] - pad[1] + 1 + i, pad[2], line)
-        stdscr.addstr(1, pad[2], 'Title: {}\t{}'.format(parser.title, parser.ids[1]))
-        messages = list(item for item in messages if item)
-        if messages:
-            logging.debug(messages)
-            for i, message in enumerate(messages):
-                stdscr.addstr(2 + i, pad[2], message)
-        cmd = stdscr.getkey()
-
-        pad_offset, message, movement = parse_input(cmd, pad_offset, disp_dims, img_dims)
-        if movement is None:
-            messages = [message]
-        elif movement == 1:
-            loading(stdscr)
-            parser.next_comic()
-            loaded = False
-        elif movement == 0:
-            loading(stdscr)
-            parser.rand_comic()
-            loaded = False
-        elif movement == -1:
-            loading(stdscr)
-            parser.prev_comic()
-            loaded = False
-
-def loading(stdscr):
-    '''
-    displays the loading message on screen
-    '''
-    stdscr.erase()
-    stdscr.addstr(stdscr.getmaxyx()[0]//2, stdscr.getmaxyx()[1]//2 - 5, 'loading...')
-    stdscr.refresh()
-
-def text_to_lines(hover_text, line_width):
-    '''
-    splits a string of words into individual lines
-    '''
-    hover_words = hover_text.split(' ')
-    hover_lines = []
-    line = ''
-    for word in hover_words:
-        if len(line) == 0:      #if the word is longer than the width it will do weird things
-            line += word
-        elif len(line) + len(word) + 1 <= line_width:
-            line += ' '
-            line += word
-        else:
-            hover_lines.append(line)
-            line = word
-    if line:
-        hover_lines.append(line)
-    return hover_lines
-
-def calculate_screen_dims(screen_size, messages, lines):
-    '''
-    calculates and returns a tuple of the pad and the image width
-    '''
-    pad = [0, 0, 0, 0]          #top bottom left right
-    disp_dims = [0, 0]
-    pad[2] = 5
-    pad[3] = 5
-    disp_dims[1] = screen_size[1] - pad[2] - pad[3]
-    pad[0] = 3 + len(messages) if messages else 4
-    pad[1] = 2 + len(lines)
-    disp_dims[0] = screen_size[0] - pad[0] - pad[1]
-    return pad, disp_dims
-
-def parse_input(cmd, pad_offset, disp_dims, img_dims):
-    '''
-    handles all input
-    '''
-
-    message = None
-
-    if cmd == 'KEY_DOWN':
-        pad_offset[0] += PAD_MOVE_Y
-        if pad_offset[0] + disp_dims[0] >= img_dims[0]:
-            message = 'Edge of image'
-            pad_offset[0] = img_dims[0] - disp_dims[0]
-            if pad_offset[0] < 0:
-                pad_offset[0] = 0
-    elif cmd == 'KEY_UP':
-        pad_offset[0] -= PAD_MOVE_Y
-        if pad_offset[0] <= 0:
-            message = 'Edge of image'
-            pad_offset[0] = 0
-    elif cmd == 'KEY_RIGHT':
-        pad_offset[1] += PAD_MOVE_X
-        if pad_offset[1] + disp_dims[1] >= img_dims[1]:
-            message = 'Edge of image'
-            pad_offset[1] = img_dims[1] - disp_dims[1]
-            if pad_offset[1] < 0:
-                pad_offset[1] = 0
-    elif cmd == 'KEY_LEFT':
-        pad_offset[1] -= PAD_MOVE_X
-        if pad_offset[1] <= 0:
-            message = 'Edge of image'
-            pad_offset[1] = 0
-    elif cmd == 'z':
-        return None, None, -1
-    elif cmd == 'x':
-        return None, None, 0
-    elif cmd == 'c':
-        return None, None, 1
-    elif cmd == 'q':
-        sys.exit(0)
-
-    return pad_offset, message, None
-
-def find_comic_ids(soup):
-    '''
-    get (prev, current, next) ids
-    '''
-    previd = int(soup.find(rel='prev').get('href')[1:-1])
-    nextid = None
-    try:
-        nextid = soup.find(rel='next').get('href')[1:-1]
-    except ValueError:
-        pass
-    currentid = list(soup.find('div', {'id':'middleContainer'}).children)[10][-5:-1]
-    while currentid[0] not in '0123456789':
-        currentid = currentid[1:]
-    currentid = int(currentid)
-
-    return previd, currentid, nextid
-
-
-if __name__ == '__main__':
-    curses.wrapper(main)
