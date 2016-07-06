@@ -97,7 +97,7 @@ def main(stdscr):
         img = parser.img
         img_dims = [len(img), len(max(img, key=len))]
         logging.debug('img_y, img_x %s', str(img_dims))
-        logging.debug('disp_dims %s', str(disp_dims))
+        logging.debug('disp_dims %s', str(viewer.disp_dims))
 
         vert = disp_dims[0] if disp_dims[0] < img_dims[0] else img_dims[0]
         for i in range(vert):
