@@ -21,7 +21,7 @@ class XKCDViewer():
         self.stdscr = stdscr
         self.pad = [0, 0, 0, 0]
         self.pad_offest = [0, 0]
-        self.disp_dims  =[0, 0, 0, 0]
+        self.disp_dims = [0, 0, 0, 0]
         self.lines = ['']
 
     def loading(self):
@@ -37,7 +37,6 @@ class XKCDViewer():
         '''
         creates the pads for the screen
         '''
-        self.pad_offset = [0, 0]
         self.pad, self.disp_dims = calculate_screen_dims(self.stdscr.getmaxyx(), 
                                                          self.messages, 
                                                          self.text[1])
@@ -75,6 +74,23 @@ class XKCDViewer():
         hover_lines.append(line)
         self.text[1] = hover_lines
 
+    def calculate_screen_dims(self, screen_size, messages, lines):
+        '''
+        returns 2 tuples, pad and image dimensions
+        '''
+        pad = [0, 0, 0, 0]
+        valid_disp_dims = [0, 0]
+        pad[2] = 5
+        pad[3] = 5
+        valid_disp_dims[1] = screen_size[1] - pad[2] - pad[3]
+        pad[0] = 3 + len(messages) if messages else 4
+        pad[1] = 2 + len(lines)
+        valid_disp_dims[0] = screen_size[0] - pad[0] - pad[1]
+        img_dims = [len(self.img), len(max(self.img, key=len))]
+        disp_dims[0] = min(valid_disp_dims[0], img_dims[0])
+        disp_dims[1] = min(valid_disp_dims[1], img_dims[1])
+        return pad, disp_dims
+
 
 
 def main(stdscr):
@@ -96,23 +112,31 @@ def main(stdscr):
         stdscr.erase()
         img = parser.img
         img_dims = [len(img), len(max(img, key=len))]
+        disp_dims = viewer.disp_dims        #should be removed, needed to make the program work temporarily
         logging.debug('img_y, img_x %s', str(img_dims))
         logging.debug('disp_dims %s', str(viewer.disp_dims))
-
-        vert = disp_dims[0] if disp_dims[0] < img_dims[0] else img_dims[0]
+    
+        #height of image displayed, min of image height and screen height
+        vert = min(disp_dims[0], img_dims[0])
         for i in range(vert):
-            j = disp_dims[1] if disp_dims[1] < img_dims[1] else img_dims[1]
+            #width of image, min of image width and screen width
+            j = min(disp_dims[1], img_dims[1])
             stdscr.addstr(i + pad[0], pad[2], img[i+pad_offset[0]][pad_offset[1] : pad_offset[1]+j])
+
+        #output hover text/title
         for i, line in enumerate(lines):
             stdscr.addstr(stdscr.getmaxyx()[0] - pad[1] + 1 + i, pad[2], line)
         stdscr.addstr(1, pad[2], 'Title:{}\t{}'.format(parser.title, parser.ids[1]))
+
+        #errors or other messages
         messages = list(item for item in messages if item)
         if messages:
             logging.debug(messages)
             for i, message in enumerate(messages):
                 stdscr.addstr(2 + i, pad[2], message)
         cmd = stdscr.getkey()
-
+    
+        #taking input
         pad_offset, message, movement = parse_input(cmd, pad_offset, disp_dims, img_dims)
         if movement is None:
             messages = [message]
@@ -131,7 +155,7 @@ def main(stdscr):
 
 def calculate_screen_dims(screen_size, messages, lines):
     '''
-    returns 2 tuples of the pad and the image width
+    returns 2 tuples, pad and image dimensions
     '''
     pad = [0, 0, 0, 0]
     disp_dims = [0, 0]
