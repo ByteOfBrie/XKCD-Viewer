@@ -20,9 +20,10 @@ class XKCDViewer():
         self.text = ['', ['']]
         self.stdscr = stdscr
         self.pad = [0, 0, 0, 0]
-        self.pad_offest = [0, 0]
+        self.pad_offset = [0, 0]
         self.disp_dims = [0, 0]
         self.lines = ['']
+        self.img = None
 
     def loading(self):
         '''
@@ -73,6 +74,9 @@ class XKCDViewer():
         '''
         returns 2 tuples, pad and image dimensions
         '''
+        #this if statement should probably be in a different function
+        if self.img is None:
+            self.img = self.parser.img
         pad = [0, 0, 0, 0]
         valid_disp_dims = [0, 0]
         disp_dims = [0, 0]
@@ -110,22 +114,21 @@ def main(stdscr):
 
         stdscr.erase()
         img = parser.img
-        img_dims = [len(img), len(max(img, key=len))]
         logging.debug('disp_dims %s', str(viewer.disp_dims))
     
         #height of image displayed, min of image height and screen height
-        for i in range(viewer.disp_dims[0]):   #new disp_dims
+        for i in range(viewer.disp_dims[0]):
             #width of image, min of image width and screen width
-            stdscr.addstr(i + pad[0], pad[2],
-                          img[i+pad_offset[0]][pad_offset[1] : pad_offset[1]+viewer.disp_dims[1]])
+            stdscr.addstr(i + viewer.pad[0], viewer.pad[2],
+                          img[i+viewer.pad_offset[0]][viewer.pad_offset[1] : viewer.pad_offset[1]+viewer.disp_dims[1]])
 
         #output hover text/title
-        for i, line in enumerate(lines):
-            stdscr.addstr(stdscr.getmaxyx()[0] - pad[1] + 1 + i, pad[2], line)
-        stdscr.addstr(1, pad[2], 'Title:{}\t{}'.format(parser.title, parser.ids[1]))
+        for i, line in enumerate(viewer.lines):
+            stdscr.addstr(stdscr.getmaxyx()[0] - viewer.pad[1] + 1 + i, viewer.pad[2], line)
+        stdscr.addstr(1, viewer.pad[2], 'Title:{}\t{}'.format(parser.title, parser.ids[1]))
 
         #errors or other messages
-        messages = list(item for item in messages if item)
+        messages = list(item for item in viewer.messages if item)
         if messages:
             logging.debug(messages)
             for i, message in enumerate(messages):
