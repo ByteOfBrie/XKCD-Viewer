@@ -37,9 +37,9 @@ class XKCDViewer():
         '''
         creates the pads for the screen
         '''
-        calculate_screen_dims(self.stdscr.getmaxyx(), self.messages, self.text[1])
+        self.calculate_screen_dims(self.stdscr.getmaxyx(), self.messages, self.text[1])
         self._text_to_lines()
-        calculate_screen_dims(self.stdscr.getmaxyx(), self.messages, self.text[1])
+        self.calculate_screen_dims(self.stdscr.getmaxyx(), self.messages, self.text[1])
 
     def set_up_for_viewing(self):
         '''
