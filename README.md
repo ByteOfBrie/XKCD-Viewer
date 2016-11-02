@@ -6,7 +6,7 @@ simple completely terminal viewer for XKCD
 Requires:
 * Python 3
 * Beautiful Soup 4
-* drawille (http://github.com/asciimoo/drawille)[asciimoo/drawille]
+* drawille [asciimoo/drawille](http://github.com/asciimoo/drawille)
 * requests
 * PIL
 * Curses
