@@ -14,6 +14,7 @@ Requires:
 # Running
 
 `python XKCDViewer.py`
+some comics will probably break this, but only standard ones have been tested
 
 # Contributing
 
